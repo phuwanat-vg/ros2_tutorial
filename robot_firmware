@@ -18,9 +18,9 @@
 //////////////// pin setup /////////////////
 
 #define LED_PIN 13
-#define r_dir1_pin 1
+#define r_dir1_pin 0
 #define r_dir2_pin 2
-#define r_pwm_pin 0
+#define r_pwm_pin 1
 
 #define l_dir1_pin 3
 #define l_dir2_pin 4
@@ -64,9 +64,9 @@ unsigned int SPIN_FREQ = 20;
 float windup_guard = 20;
 
 // PID control parameters
-float kp = 5;
-float ki = 0.0004;
-float kd = 0.0;
+float kp = 0.4;
+float ki = 0.001;
+float kd = 0.08;
 
 //Motor pulse parameters
 float PPR = 840 * 4;
@@ -172,23 +172,19 @@ void computePIDR(double control_cmd, long inTick)
   dtR =  (curTimeR - prevTimeR);
 
   measuredRPMR = ((diffTickR / PPR) / (dtR * 0.001)) * 60;
- 
-
 
   errR = abs(setRPMR) - abs(measuredRPMR);
 
   sumErrR += errR * dtR;
- 
-
 
   dErrR = (errR - prev_errR) / dtR;
 
   control_outR = kp * errR + ki * sumErrR + kd * dErrR;
 
-
+  if (control_outR < 0) {
+    control_outR = 0;
+  }
   prev_errR = errR;
-
-
   prevTickR = curTickR;
   prevTimeR = curTimeR;
 
@@ -196,21 +192,22 @@ void computePIDR(double control_cmd, long inTick)
   {
     digitalWrite(r_dir1_pin, HIGH);
     digitalWrite(r_dir2_pin, LOW);
-
+    analogWrite(r_pwm_pin, control_outR);
   }
   else if (dirs < -0.5)
   {
     digitalWrite(r_dir1_pin, LOW);
     digitalWrite(r_dir2_pin, HIGH);
+    analogWrite(r_pwm_pin, control_outR);
 
   }
   else
   {
     digitalWrite(r_dir1_pin, LOW);
     digitalWrite(r_dir2_pin, LOW);
+    analogWrite(r_pwm_pin, 0);
   }
 
-  analogWrite(r_pwm_pin, control_outR);
 
 }
 
